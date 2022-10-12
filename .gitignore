@@ -3,3 +3,9 @@
 
 ### env ###
 */env
+
+### cache ###
+*/__pycache__
+
+### images ###
+*/images

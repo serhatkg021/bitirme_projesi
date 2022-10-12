@@ -1,10 +1,11 @@
+import global_variables
 import socket
 
 import cv2 
 import numpy as np
 
 class TCP_Socket:
-    def __init__(self, host="localhost", port=12345):
+    def __init__(self, host=global_variables.HOST, port=global_variables.PORT):
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             print("socket oluşturuldu.")
@@ -21,7 +22,7 @@ class TCP_Socket:
         print('Gelen bağlantı:', self.addr)
 
     def get_client_image(self):
-        dataFromClient = self.c.recv(921600)
+        dataFromClient = self.c.recv(global_variables.RECV)
         image_array = np.frombuffer(dataFromClient, np.uint8)
         image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
         return image
