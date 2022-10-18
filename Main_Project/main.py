@@ -4,7 +4,9 @@ import json
 
 from tcp_socket import TCP_Socket
 from lane_detection import lane_detec
+from yolo.yolov5live import ObjectDetection
 
+objDetect = ObjectDetection(model_name=None) 
 socket = TCP_Socket()
 while True:
     if socket.c is None:
@@ -12,13 +14,14 @@ while True:
 
     image = socket.get_client_image()
     lane_status = lane_detec(image)
-    print(lane_status)
+    object_status = objDetect.detect_object(image)
+    # print(lane_status)
     # cv2.imshow("camera", image)
 
     # send_data = {"lane_status": lane_status,
     #              "traffic_light": }
     # data = json.dumps(send_data)
-    socket.send_client_data(lane_status)
+    socket.send_client_data(lane_status + "_" + str(object_status[0]) + "_" + str(object_status[1]))
 
     if cv2.waitKey(10) == 13:
         socket.close_client_connection()
