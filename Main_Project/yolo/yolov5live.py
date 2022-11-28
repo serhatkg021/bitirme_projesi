@@ -2,25 +2,24 @@ import torch
 import numpy as np
 import cv2
 import time
-
+from traffic_light_detector import colorDetect
 
 class ObjectDetection:
     """
     Class implements Yolo5 model to make inferences on a youtube video using OpenCV.
     """
-
-    def __init__(self, model_name):  # model name i parametre verdik
+    def __init__(self, path=None, model_name=None):  # model name i parametre verdik
         """
         Initializes the class with youtube url and output file.
         :param url: Has to be as youtube URL,on which prediction is made.
         :param out_file: A valid output file name.
         """
-        self.model = self.load_model(model_name)
+        self.model = self.load_model(path, model_name)
         self.classes = self.model.names
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print("\n\nDevice Used:", self.device)
 
-    def load_model(self, model_name):
+    def load_model(self, path, model_name):
         """
         Loads Yolo5 model from pytorch hub.
         :return: Trained Pytorch model.
@@ -28,11 +27,9 @@ class ObjectDetection:
         # path = 'best.pt'
         # model = torch.hub.load(path, 'yolov5s', source='local', pretrained=True)
         if (model_name):
-            model = torch.hub.load(
-                'ultralytics/yolov5', 'custom', path=model_name, force_reload=True)
+            model = torch.hub.load(path, 'custom', path=model_name, source='local', force_reload=True)
         else:
-            model = torch.hub.load('ultralytics/yolov5',
-                                   'yolov5s', pretrained=True)
+            model = torch.hub.load('ultralytics/yolov5','yolov5s', pretrained=True)
         return model
 
     def score_frame(self, frame):
@@ -65,29 +62,29 @@ class ObjectDetection:
         labels, cord = results
         n = len(labels)
         x_shape, y_shape = frame.shape[1], frame.shape[0]
-        trafic_status = 0
+        trafic_status = [0,0,0,0]
         person_status = 0
         for i in range(n):
             row = cord[i]
-            if row[4] >= 0.6:  # eşik değer
+            if row[4] >= 0.4:  # eşik değer
                 x1, y1, x2, y2 = int(
                     row[0]*x_shape), int(row[1]*y_shape), int(row[2]*x_shape), int(row[3]*y_shape)
                 bgr = (0, 255, 0)
                 # tanıdığı  modeli kare içine alıyor
-                cv2.rectangle(frame, (x1, y1), (x2, y2), bgr, 2)
+                # cv2.rectangle(frame, (x1, y1), (x2, y2), bgr, 2)
                 # kare üstüne label ve güven skorunu yazıyor
                 class_name = self.class_to_label(labels[i])
-                print(class_name)
-                cv2.putText(frame, class_name + " " + str(row[4]), (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.9, bgr, 2)
+                cv2.putText(frame, class_name + " " + str(row[4]), (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, bgr, 2)
+                distance_ratio = 512 / (y2-y1)
                 if(class_name == "traffic light"):
-                    light_distance_ratio = 512 / (y2-y1)
-                    print(str(light_distance_ratio))
-                    trafic_status = 1
-                    if light_distance_ratio < 5:
-                        trafic_status = 2
+                    trafic_status = colorDetect(frame[y1:y2, x1:x2].copy())
+                    if distance_ratio < 5:
+                        trafic_status[3] = 1
+                    print(trafic_status)
 
                 if(class_name == "person"):
-                    person_status = 1
+                    if distance_ratio < 15:
+                        person_status = 1
 
         return [frame, trafic_status, person_status]
 
@@ -97,9 +94,6 @@ class ObjectDetection:
         and write the output into a new file.
         :return: void
         """
-        # cap = cv2.VideoCapture(0)
-
-        # while cap.isOpened():
 
         start_time = time.perf_counter()
         frame = image
@@ -112,9 +106,3 @@ class ObjectDetection:
                     cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 2)
         cv2.imshow("img", frame[0])
         return [frame[1], frame[2]]
-
-
-# Create a new object and execute.
-# kendi modelimizi veriyoruz burada init çalışıyor kurucu fonk
-# detection = ObjectDetection(model_name='best.pt')
-# detection.detect_object()

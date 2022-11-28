@@ -6,7 +6,9 @@ from tcp_socket import TCP_Socket
 from lane_detection import lane_detec
 from yolo.yolov5live import ObjectDetection
 
-objDetect = ObjectDetection(model_name=None) 
+# objDetect = ObjectDetection(model_name="./yolo/trafic_lights_v2.pt") 
+objDetect = ObjectDetection(path="yolo/ultralytics_yolov5_master/", model_name="yolov5s.pt") 
+
 socket = TCP_Socket()
 while True:
     if socket.c is None:
